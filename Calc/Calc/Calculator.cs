@@ -41,12 +41,12 @@ namespace Calc
         }
         public Calculator(PairOperation[] binaryOperations, UnaryOperation[] unaryOperations, BracketOperation[] bracketOperations)
         {
-            this.operations = new Dictionary<char, PairOperation>();
+            this.pairOperations = new Dictionary<char, PairOperation>();
             this.unaryOperations = new Dictionary<char, UnaryOperation>();
             this.bracketOperationsByOpenSymbol = new Dictionary<char, BracketOperation>();
             this.bracketOperationsByCloseSymbol = new Dictionary<char, BracketOperation>();
             foreach (var op in binaryOperations)
-                operations.Add(op.Symbol, op);
+                pairOperations.Add(op.Symbol, op);
             foreach (var op in unaryOperations)
                 this.unaryOperations.Add(op.Symbol, op);
             foreach (var op in bracketOperations)
@@ -57,25 +57,25 @@ namespace Calc
         }
         public static Calculator GetStandart()
         {
-            var ops = new PairOperation[]
+            var pairOperations = new PairOperation[]
             {
                 new PairOperation('+', 1, (a, b) => (double)a + (double)b),
                 new PairOperation('-', 1, (a, b) => (double)a - (double)b),
                 new PairOperation('*', 2, (a, b) => (double)a * (double)b),
                 new PairOperation('/', 2, (a, b) => (double)a / (double)b)
             };
-            var uops = new UnaryOperation[]
+            var unaryOperations = new UnaryOperation[]
             {
                 new UnaryOperation('+', (a) => a),
                 new UnaryOperation('-', (a) => -(double)a)
             };
-            var bops = new BracketOperation[]
+            var bracketOperations = new BracketOperation[]
             {
                 new BracketOperation('(',')')
             };
-            return new Calculator(ops, uops, bops);
+            return new Calculator(pairOperations, unaryOperations, bracketOperations);
         }
-        Dictionary<char, PairOperation> operations;
+        Dictionary<char, PairOperation> pairOperations;
         Dictionary<char, UnaryOperation> unaryOperations;
         Dictionary<char, BracketOperation> bracketOperationsByOpenSymbol;
         Dictionary<char, BracketOperation> bracketOperationsByCloseSymbol;
@@ -117,11 +117,11 @@ namespace Calc
                 {
                     operationStack.Push(unaryOperations[c]);
                 }
-                else if (operations.ContainsKey(c))
+                else if (pairOperations.ContainsKey(c))
                 {
-                    while (operationStack.Count > 0 && operationStack.Peek() is PairOperation @operation && operation.Priority >= operations[c].Priority)
+                    while (operationStack.Count > 0 && operationStack.Peek() is PairOperation @operation && operation.Priority >= pairOperations[c].Priority)
                         postfixList.Add(operationStack.Pop());
-                    operationStack.Push(operations[c]);
+                    operationStack.Push(pairOperations[c]);
                     currentOerationWillUnary = true;
                 }
                 else
@@ -141,35 +141,35 @@ namespace Calc
         
         static double Calc(List<object> postfixList)
         {
-            var locals = new Stack<double>();
+            var argumentStack = new Stack<double>();
 
             foreach (var exp in postfixList)
             {
                 if (exp is double @expDouble)
                 {
-                    locals.Push(@expDouble);
+                    argumentStack.Push(@expDouble);
                 }
                 else if (exp is UnaryOperation @unaryOperation)
                 {
-                    if (locals.Count < 1)
+                    if (argumentStack.Count < 1)
                         throw new IncorrectExpressionException($"Incorrect argument count");
-                    var arg1 = locals.Pop();
-                    locals.Push((double)@unaryOperation.Invoker.Invoke(arg1));
+                    var arg1 = argumentStack.Pop();
+                    argumentStack.Push((double)@unaryOperation.Invoker.Invoke(arg1));
                 }
                 else if (exp is PairOperation @operation)
                 {
-                    if (locals.Count < 2)
+                    if (argumentStack.Count < 2)
                         throw new IncorrectExpressionException($"Incorrect argument count");
-                    var arg2 = locals.Pop();
-                    var arg1 = locals.Pop();
+                    var arg2 = argumentStack.Pop();
+                    var arg1 = argumentStack.Pop();
 
-                    locals.Push((double)operation.Invoker.Invoke(arg1, arg2));
+                    argumentStack.Push((double)operation.Invoker.Invoke(arg1, arg2));
                 }
             }
-            if(locals.Count != 1)
+            if(argumentStack.Count != 1)
                 throw new IncorrectExpressionException($"Incorrect argument count");
 
-            return locals.Pop();
+            return argumentStack.Pop();
         }
     }
 }

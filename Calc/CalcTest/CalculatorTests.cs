@@ -18,7 +18,7 @@ namespace Calc.Tests
         }
 
         [TestMethod()]
-        public void GetStandartTest()
+        public void CalcTest()
         {
             var n = 10;
             for (double a = 0; a < n; a++)
